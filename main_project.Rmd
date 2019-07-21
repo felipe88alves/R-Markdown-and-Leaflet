@@ -1,31 +1,82 @@
 ---
 title: "R Markdown and Leaflet"
 author: "Felipe Alves"
-date: "7/18/2019"
+date: "7/21/2019"
 output: html_document
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r pressure, echo=FALSE}
-cities <- read.csv("https://github.com/felipe88alves/R-Markdown-and-Leaflet/blob/master/cities.csv")
-head(cities)
+library(shiny)
+library(leaflet)
+library(dplyr)
 ```
 
 ```{r prepare_data, echo=FALSE}
-total_time <- seq.Date(from = as.Date("1987-04-23"), to = Sys.Date(),by ="week")
-df2 <- df %>%
-  mutate(
-    DatetoTake = case_when(
-      weekday %in% c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday') ~ as.Date(Date),
-      weekday == 'Saturday'~as.Date(Date) + 2,
-      weekday == 'Sunday'~as.Date(Date) + 1
-      )
+dates <- data.frame(date = seq.Date(from = as.Date("1987-04-23"), to = Sys.Date(),by ="week"))
+dates <- dates %>% 
+  mutate(city_index = case_when(date >= date[1] & date <= "1987-12-31" ~ 1,
+                                date > "1987-12-31" & date <= "1988-08-25" ~ 2,
+                                date > "1988-08-25" & date <= "1994-12-29" ~ 3,
+                                date > "1994-12-29" & date <= "1997-06-26" ~ 4,
+                                date > "1997-06-26" & date <= "1998-03-26" ~ 5,
+                                date > "1998-03-26" & date <= "2012-09-27" ~ 2,
+                                date > "2012-09-27" & date <= "2014-12-25" ~ 6,
+                                date > "2014-12-25" & date <= "2015-10-15" ~ 7,
+                                date > "2015-10-15" & date <= "2018-12-27" ~ 8,
+                                date > "2018-12-27" & date <= "2019-03-28" ~ 9,
+                                date > "2019-03-28"  ~ 8))
+
+
+cities <- read.csv("https://raw.githubusercontent.com/felipe88alves/R-Markdown-and-Leaflet/master/cities.csv", header = TRUE, sep = ",", quote = "\"")
+cities <- read.csv("C:/Users/efelial/Documents/Ericsson/Courses/Coursera/Data_Science-John_Hopkins/9 - Developing Data Products in R/W2/Project/cities.csv", header = TRUE, sep = ",", quote = "\"")
+
+workingset <- merge(cities, dates, by="city_index")
+
+# Define UI for application that draws a map
+ui <- bootstrapPage(
+  tags$style(type = "text/css", " .leaflet-fade-anim .leaflet-tile, .leaflet-fade-anim .leaflet-popup {opacity: 1 !important;}", "html, body {width:100%;height:100%}"),
+  titlePanel("Where is Felipe?!"),
+  leafletOutput("mapAct", width = "100%", height = "100%"),
+  absolutePanel(top = 10, right = 10,
+  sliderInput("animation", "Time:",
+              min = workingset$date[1],
+              max = tail(workingset$date,1),
+              value = workingset$date[1],
+              step = 3,
+              timeFormat = "%F",
+              animate =
+                animationOptions(interval = 0, loop = TRUE))
   )
+)
+
+# Define server logic required
+server <- function(input, output) {
+  WorksetData <- reactive({
+    from<- input$animation
+    till<- input$animation
+    workingset %>% select(date, lat, lon) %>% filter(date >= from & date <=  till)
+  })
   
+  output$mapAct<-renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%
+      addProviderTiles(providers$CartoDB.Positron)%>%
+      fitBounds(lng1 = -38,lat1 = -12,lng2 = -40,lat2 = -13)# set to first location
+  })
+  
+  output$pred1 <- renderText({
+   input$animation()
+  })
+
+  observe({
+    leafletProxy("mapAct", data = WorksetData()) %>%
+      clearMarkers() %>%
+      addMarkers(lng = ~lon, lat = ~lat)
+  })
 }
 
+# Run the application 
+shinyApp(ui = ui, server = server)
 ```
-
