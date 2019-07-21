@@ -1,0 +1,223 @@
+---
+title: "R Markdown and Leaflet"
+author: "Felipe Alves"
+date: "7/18/2019"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(shiny)
+library(dplyr)
+library(leaflet)
+library(shinyWidgets)
+
+```
+
+```{r prepare_data, echo=FALSE}
+dates <- data.frame(date = seq.Date(from = as.Date("1987-04-23"), to = Sys.Date(),by ="week"))
+dates <- dates %>% 
+  mutate(city_index = case_when(date >= date[1] & date <= "1987-12-31" ~ 1,
+                                date > "1987-12-31" & date <= "1988-08-25" ~ 2,
+                                date > "1988-08-25" & date <= "1994-12-29" ~ 3,
+                                date > "1994-12-29" & date <= "1997-06-26" ~ 4,
+                                date > "1997-06-26" & date <= "1998-03-26" ~ 5,
+                                date > "1998-03-26" & date <= "2012-09-27" ~ 2,
+                                date > "2012-09-27" & date <= "2014-12-25" ~ 6,
+                                date > "2014-12-25" & date <= "2015-10-15" ~ 7,
+                                date > "2015-10-15" & date <= "2018-12-27" ~ 8,
+                                date > "2018-12-27" & date <= "2019-03-28" ~ 9,
+                                date > "2019-03-28"  ~ 8))
+
+
+cities <- read.csv("https://raw.githubusercontent.com/felipe88alves/R-Markdown-and-Leaflet/master/cities.csv", header = TRUE, sep = ",", quote = "\"")
+cities <- read.csv("C:/Users/efelial/Documents/Ericsson/Courses/Coursera/Data_Science-John_Hopkins/9 - Developing Data Products in R/W2/Project/cities.csv", header = TRUE, sep = ",", quote = "\"")
+
+workingset <- merge(cities, dates, by="city_index")
+```
+
+```{r prepare_data, echo=FALSE}
+
+
+                
+                
+ui <- fluidPage(
+  titlePanel("Where is Felipe?!"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderTextInput("timeline","Select a Date",
+                      choices = workingset$date, 
+                      selected = workingset$date,
+                      animate =
+                        animationOptions(interval = 0, loop = TRUE),
+                      grid = FALSE, 
+                      hide_min_max = FALSE, from_fixed = FALSE,
+                      to_fixed = FALSE, from_min = NULL, from_max = NULL, to_min = NULL,
+                      to_max = NULL, force_edges = FALSE, width = NULL, pre = NULL,
+                      post = NULL, dragRange = TRUE),
+      # sliderInput("timeline",
+      #             "SELECT A DATE",
+      #             min = workingset$date[1],
+      #             max = tail(workingset$date,1),
+      #             value = workingset$date[1],
+      #             step = 3,
+      #             timeFormat = "%F",
+      #             animate =
+      #               animationOptions(interval = 0, loop = TRUE)),
+      textOutput("Current_Date")
+  ),
+  mainPanel(
+    leafletOutput("mapAct", width = "100%", height = "100%")
+  )
+  )
+)
+
+# Define server logic required
+server <- function(input, output) {
+  
+  date_Output <- reactive({
+    date_Input <- input$timeline
+    date_Input
+  })
+  output$Current_Date <- renderText({
+    date_Output()
+  })
+  
+  output$mapAct<-renderLeaflet({
+    if(input$timeline %in% dates$date){
+      leaflet() %>%
+        addTiles() %>%
+        addProviderTiles(providers$CartoDB.Positron)%>%
+        fitBounds(lng1 = ~lon,lat1 = ~lat,lng2 = ~lon,lat2 = ~lat)# set to reactive minimums
+    }
+  })
+  
+    #stuff in server
+  # WorksetData <- reactive({
+  #   #add rollified thing
+  #   from<- input$animation
+  #   till<- input$animation
+  #   #data %>% filter(time >= from & time <=  till)
+  #   workingset %>% select(date, lat, lon) %>% filter(date >= from & date <=  till)
+  # })
+  # 
+  # output$mapAct<-renderLeaflet({
+  #   leaflet() %>%
+  #     addTiles() %>%
+  #     addProviderTiles(providers$CartoDB.Positron)%>%
+  #     fitBounds(lng1 = -38,lat1 = -12,lng2 = -40,lat2 = -13)# set to reactive minimums
+  # })
+  # 
+  # output$pred1 <- renderText({
+  #  input$animation()
+  # })
+  # 
+  # observe({
+  #   leafletProxy("mapAct", data = WorksetData()) %>%
+  #     clearMarkers() %>%
+  #     addMarkers(lng = ~lon, lat = ~lat)
+  # })
+    
+  # observe({
+  #   proxy <- leafletProxy("mapAct", data = WorksetData())
+  #   
+  #     if (input$animation %in% date) {
+  #       proxy %>% 
+  #         removeMarkers() %>%
+  #         addMarkers(lng = ~lon, lat = ~lat)  
+  #     }
+  # })
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+```
+
+
+
+
+
+
+
+```{r prepare_data_v2, echo=FALSE}
+dates <- data.frame(date = seq.Date(from = as.Date("1987-04-23"), to = Sys.Date(),by ="week"))
+dates <- dates %>% 
+  mutate(city_index = case_when(date <= "1987-07-30" ~ 1,
+                                date > "1987-07-30" & date <= "1987-12-31" ~ 2,
+                                date > "1987-12-31" & date <= "1988-08-25" ~ 1,
+                                date > "1988-08-25" & date <= "1994-12-29" ~ 3,
+                                date > "1994-12-29" & date <= "1997-06-26" ~ 4,
+                                date > "1997-06-26" & date <= "1998-03-26" ~ 5,
+                                date > "1998-03-26" & date <= "2012-09-27" ~ 2,
+                                date > "2012-09-27" & date <= "2014-12-25" ~ 6,
+                                date > "2014-12-25" & date <= "2015-10-15" ~ 7,
+                                date > "2015-10-15" & date <= "2018-12-27" ~ 8,
+                                date > "2018-12-27" & date <= "2019-03-28" ~ 9,
+                                date > "2019-03-28"  ~ 8))
+
+
+cities <- read.csv("https://raw.githubusercontent.com/felipe88alves/R-Markdown-and-Leaflet/master/cities.csv", header = TRUE, sep = ",", quote = "\"")
+cities <- read.csv("C:/Users/efelial/Documents/Ericsson/Courses/Coursera/Data_Science-John_Hopkins/9 - Developing Data Products in R/W2/Project/cities.csv", header = TRUE, sep = ",", quote = "\"")
+dates <- read.csv("C:/Users/efelial/Documents/Ericsson/Courses/Coursera/Data_Science-John_Hopkins/9 - Developing Data Products in R/W2/Project/cities_and_dates.csv", header = TRUE, sep = ",", quote = "\"")
+
+dates$date <- as.Date(dates$date, "%m/%d/%Y")
+
+workingset <- dates
+
+# this is a shiny web app. Save as app.r
+
+library(shiny)
+library(leaflet)
+library(dplyr)
+
+# Define UI for application that draws a map
+#data<- readRDS("f.rds") # loading the data. It has the timestamp, lon, lat, and the accuracy (size of circles)
+
+ui <- bootstrapPage(
+  tags$style(type = "text/css", " .leaflet-fade-anim .leaflet-tile, .leaflet-fade-anim .leaflet-popup {opacity: 1 !important;}", "html, body {width:100%;height:100%}"),
+  #tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
+  titlePanel("Where is Felipe?!"),
+  leafletOutput("mapAct", width = "100%", height = "100%"),
+  absolutePanel(top = 10, right = 10,
+  sliderInput("animation", "Time:",
+              #min = as.POSIXct("2017-02-15 00:00:00",tz = "Europe/Budapest"),
+              #max = as.POSIXct("2017-02-15 23:59:59",tz = "Europe/Budapest"),
+              min = workingset$date[1],
+              max = Sys.Date(),
+              value = workingset$date[1],
+              step = 7,
+              timeFormat = "%F",
+              animate =
+                animationOptions(interval = 0, loop = TRUE))
+  )
+)
+
+# Define server logic required
+server <- function(input, output) {
+  #stuff in server
+  WorksetData <- reactive({
+    #add rollified thing
+    from<- input$animation
+    till<- input$animation
+    #data %>% filter(time >= from & time <=  till)
+    workingset %>% select(date, lat, lon) %>% filter(date >= from & date <=  till)
+  })
+  
+  output$mapAct<-renderLeaflet({
+    leaflet() %>%
+      addTiles() %>%
+      addProviderTiles(providers$CartoDB.Positron)%>%
+      fitBounds(lng1 = -38,lat1 = -12,lng2 = -40,lat2 = -13)# set to reactive minimums
+  })
+  
+  observe({
+    leafletProxy("mapAct", data = WorksetData()) %>%
+      clearMarkers() %>%
+      addMarkers(lng = ~lon, lat = ~lat)
+  })
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+```

@@ -30,7 +30,6 @@ dates <- dates %>%
 
 
 cities <- read.csv("https://raw.githubusercontent.com/felipe88alves/R-Markdown-and-Leaflet/master/cities.csv", header = TRUE, sep = ",", quote = "\"")
-cities <- read.csv("C:/Users/efelial/Documents/Ericsson/Courses/Coursera/Data_Science-John_Hopkins/9 - Developing Data Products in R/W2/Project/cities.csv", header = TRUE, sep = ",", quote = "\"")
 
 workingset <- merge(cities, dates, by="city_index")
 
