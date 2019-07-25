@@ -15,9 +15,9 @@ library(crosstalk)
 library(RColorBrewer)
 ```
 
-## R Markdown
+## Meteorite Impacts
 
-The maps below shows meteorite data in a world map. The data used can be found in the following [Link](https://github.com/rfordatascience/tidytuesday/tree/4dc81d178d8c05b731a9fbbc016b602824909084/data/2019/2019-06-11).
+The map below shows meteorite data in a world map. The data used can be found in the following [Link](https://github.com/rfordatascience/tidytuesday/tree/4dc81d178d8c05b731a9fbbc016b602824909084/data/2019/2019-06-11).
 
 ```{r prepare_data, echo = FALSE, include = FALSE}
 meteorites <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-11/meteorites.csv")
