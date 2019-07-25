@@ -1,81 +1,59 @@
 ---
 title: "R Markdown and Leaflet"
 author: "Felipe Alves"
-date: "7/21/2019"
-output: html_document
-runtime: shiny
+date: "7/25/2019"
+output:
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(shiny)
 library(leaflet)
 library(dplyr)
+library(DT)
+library(crosstalk)
+library(RColorBrewer)
 ```
 
-```{r prepare_data, echo=FALSE}
-dates <- data.frame(date = seq.Date(from = as.Date("1987-04-23"), to = Sys.Date(),by ="week"))
-dates <- dates %>% 
-  mutate(city_index = case_when(date >= date[1] & date <= "1987-12-31" ~ 1,
-                                date > "1987-12-31" & date <= "1988-08-25" ~ 2,
-                                date > "1988-08-25" & date <= "1994-12-29" ~ 3,
-                                date > "1994-12-29" & date <= "1997-06-26" ~ 4,
-                                date > "1997-06-26" & date <= "1998-03-26" ~ 5,
-                                date > "1998-03-26" & date <= "2012-09-27" ~ 2,
-                                date > "2012-09-27" & date <= "2014-12-25" ~ 6,
-                                date > "2014-12-25" & date <= "2015-10-15" ~ 7,
-                                date > "2015-10-15" & date <= "2018-12-27" ~ 8,
-                                date > "2018-12-27" & date <= "2019-03-28" ~ 9,
-                                date > "2019-03-28"  ~ 8))
+## R Markdown
 
+The maps below shows meteorite data in a world map. The data used can be found in the following [Link](https://github.com/rfordatascience/tidytuesday/tree/4dc81d178d8c05b731a9fbbc016b602824909084/data/2019/2019-06-11).
 
-cities <- read.csv("https://raw.githubusercontent.com/felipe88alves/R-Markdown-and-Leaflet/master/cities.csv", header = TRUE, sep = ",", quote = "\"")
+```{r prepare_data, echo = FALSE, include = FALSE}
+meteorites <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-11/meteorites.csv")
 
-workingset <- merge(cities, dates, by="city_index")
+mDataset <- meteorites %>%
+  filter(!is.na(lat), !is.na(mass), !is.na(year), mass > 1000) %>%
+  mutate(mass = mass/1000000,
+         year = year,
+         mass_quantile = ntile(mass, 100))
 
-# Define UI for application that draws a map
-ui <- bootstrapPage(
-  tags$style(type = "text/css", " .leaflet-fade-anim .leaflet-tile, .leaflet-fade-anim .leaflet-popup {opacity: 1 !important;}", "html, body {width:100%;height:100%}"),
-  titlePanel("Where is Felipe?!"),
-  leafletOutput("mapAct", width = "100%", height = "100%"),
-  absolutePanel(top = 10, right = 10,
-  sliderInput("animation", "Time:",
-              min = workingset$date[1],
-              max = tail(workingset$date,1),
-              value = workingset$date[1],
-              step = 3,
-              timeFormat = "%F",
-              animate =
-                animationOptions(interval = 0, loop = TRUE))
+sdf <- SharedData$new(as.data.frame(mDataset))
+```
+
+```{r plot_map, echo = FALSE}
+
+coul = brewer.pal(5, "YlOrBr")
+coul = colorRampPalette(coul)(20)
+
+pal <- colorNumeric(
+  palette = coul,
+  domain = mDataset$mass_quantile)
+
+filter_slider("year", "Year", sdf, column=~year, step=1, width=500, sep = "")
+filter_slider("mass", "Mass in tons", sdf, column=~mass, step=10, width=500)
+
+bscols(leaflet(sdf) %>% addTiles() %>%
+         addCircles(
+    lat = ~ lat,
+    lng = ~long,
+    popup= ~sprintf('City: %s<br>Class: %s<br>Year: %s<br>Mass: %s tons',
+                    name, class, year, mass),
+    radius = ~mass*50000,
+    color = ~pal(mass_quantile),
+    stroke = FALSE,
+    fillOpacity = 0.5),
+    datatable(sdf,width="100%")
   )
-)
 
-# Define server logic required
-server <- function(input, output) {
-  WorksetData <- reactive({
-    from<- input$animation
-    till<- input$animation
-    workingset %>% select(date, lat, lon) %>% filter(date >= from & date <=  till)
-  })
-  
-  output$mapAct<-renderLeaflet({
-    leaflet() %>%
-      addTiles() %>%
-      addProviderTiles(providers$CartoDB.Positron)%>%
-      fitBounds(lng1 = -38,lat1 = -12,lng2 = -40,lat2 = -13)# set to first location
-  })
-  
-  output$pred1 <- renderText({
-   input$animation()
-  })
-
-  observe({
-    leafletProxy("mapAct", data = WorksetData()) %>%
-      clearMarkers() %>%
-      addMarkers(lng = ~lon, lat = ~lat)
-  })
-}
-
-# Run the application 
-shinyApp(ui = ui, server = server)
 ```
